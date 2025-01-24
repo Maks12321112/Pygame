@@ -48,7 +48,7 @@ import pygame
 class Player(GameSprite):
     def __init__(self, w, h, x, y, x_speed, y_speed):
         super().__init__('run1.png', 50, 50, x, y) 
-        self.image = transform.scale(image.load('run1.png'), (50, 50))  
+        self.image = pygame.transform.scale(pygame.image.load('run1.png'), (50, 50))  
         self.frames_right = self.load_frames_from_folder('run') 
 
         self.x_speed = x_speed
@@ -71,7 +71,7 @@ class Player(GameSprite):
         for filename in os.listdir('run'):
             if filename.endswith('.png'):  
                 frame_path = os.path.join(folder_path, filename)
-                frame = transform.scale(image.load(frame_path), (50, 50))  
+                frame = pygame.transform.scale(pygame.image.load(frame_path), (50, 50))  
                 frames.append(frame)
         return frames
 
@@ -83,7 +83,7 @@ class Player(GameSprite):
  
         self.y_speed += self.gravity
         self.rect.y += self.y_speed
-        platforms_touched = sprite.spritecollide(self, barriers, False)
+        platforms_touched = pygame.sprite.spritecollide(self, barriers, False)
         if self.y_speed > 0:  
             for p in platforms_touched:
                 print(p.rect.x, p.rect.y)
@@ -110,9 +110,21 @@ class Player(GameSprite):
             self.last_update = now
             if self.is_walking: 
                 self.current_frame = (self.current_frame + 1) % len(self.frames_right) 
-                self.image = self.frames_right[self.current_frame]  
+                self.image = self.frames_right[self.current_frame]
 
     
+class Camera:
+    def __init__(self):
+        self.dx = 0
+        self.dy = 0
+
+    def apply(self, obj):
+        obj.rect.x += self.dx
+        obj.rect.y += self.dy
+
+    def update(self, target):
+        self.dx = -(target.rect.x + target.rect.w // 2 - 300)
+        self.dy = -(target.rect.y + target.rect.h // 2 - 300)
 
 
 class Enemy(GameSprite):
@@ -139,8 +151,9 @@ class Enemy(GameSprite):
 
 
 class Bullet(sprite.Sprite):
-    def __init__(self, x, y):
+    def __init__(self, x, y, type = 'enemy'):
         super().__init__()
+        self.type = type
         self.image = Surface((10, 5))  
         self.image.fill((255, 0, 0))  
         self.rect = self.image.get_rect()

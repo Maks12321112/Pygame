@@ -3,13 +3,96 @@ import pygame
 import json
 import os
 import sys
-from labirint import GameSprite, Player, Enemy, Bullet, draw_lives, load_level_from_json, Bonus
 
 from buttans import Button
 import pygame
 font = pygame.font
+import pygame
+import sys
+from pygame.locals import *
+import os
+from labirint import *
+barriers = pygame.sprite.Group()
 
+
+barriers, monsters, bonus = load_level_from_json('map.json')
+
+
+class Player(GameSprite):
+    def __init__(self, w, h, x, y, x_speed, y_speed):
+        super().__init__('run1.png', 50, 50, x, y) 
+        self.image = pygame.transform.scale(pygame.image.load('run1.png'), (50, 50))  
+        self.frames_right = self.load_frames_from_folder('run') 
+
+        self.x_speed = x_speed
+        self.y_speed = y_speed
+        self.gravity = 0.4
+        self.is_jumping = False
+
+
+        self.frame_width = w  
+        self.frame_height = h  
+        self.current_frame = 0  
+
+        self.animation_speed = 0.2  
+        self.last_update = pygame.time.get_ticks()  
+        self.is_walking = False  
+
+    def load_frames_from_folder(self, folder_path):
+
+        frames = []
+        for filename in os.listdir('run'):
+            if filename.endswith('.png'):  
+                frame_path = os.path.join(folder_path, filename)
+                frame = pygame.transform.scale(pygame.image.load(frame_path), (50, 50))  
+                frames.append(frame)
+        return frames
+
+
+    def update(self):
+
+        self.rect.x += self.x_speed
+
+ 
+        self.y_speed += self.gravity
+        self.rect.y += self.y_speed
+        platforms_touched = pygame.sprite.spritecollide(self, barriers, False)
+        if self.y_speed > 0:  
+            for p in platforms_touched:
+                print(p.rect.x, p.rect.y)
+                self.rect.bottom = min(self.rect.bottom, p.rect.top)
+                self.y_speed = 0  
+                self.is_jumping = False
+        elif self.y_speed < 0: 
+            for p in platforms_touched:
+                print(p.rect.x, p.rect.y)
+                self.rect.top = max(self.rect.top, p.rect.bottom)
+                self.y_speed = 0  
+
+  
+        if self.x_speed != 0: 
+            self.is_walking = True
+        else:
+            self.is_walking = False
+
+        self.update_animation()
+
+    def update_animation(self):
+        now = pygame.time.get_ticks()
+        if now - self.last_update > self.animation_speed * 1000: 
+            self.last_update = now
+            if self.is_walking: 
+                self.current_frame = (self.current_frame + 1) % len(self.frames_right) 
+                self.image = self.frames_right[self.current_frame]
 init()
+screen = pygame.display.set_mode((600, 600))
+clock = pygame.time.Clock()
+
+player = Player(50, 50, 100, 100, 0, 0)
+
+camera = Camera()
+def a():
+    pass
 m = 1200
 window = display.set_mode((m, 900))
 b = (135, 206, 235)
@@ -103,37 +186,13 @@ def draw_text(text, font, color, surface, x, y):
     surface.blit(textobj, textrect)
 
 def game_loop():
-    global map_objects
-    run = True
-    lives = 1
-
-    finish = False
-
-    player = Player(70, 65, 30,100, 0, 0) 
-
-
-
-    bullets = sprite.Group()
-    
-    clock = time.Clock()
-    barriers, monsters, bonus = load_level_from_json('map.json')
-    lives = 3
-    m = 1200
-    window = display.set_mode((m, 900))
-    b = (135, 206, 235)
-    finish = False
-    win = transform.scale(image.load('thumb.jpg'), (700, 500))
-    WIDTH, HEIGHT = 800, 600
-    window = display.set_mode((WIDTH, HEIGHT))
-    enemies = sprite.Group()
-    running = True
-    bullets = sprite.Group()
-    clock = time.Clock()
-
     b = Bonus(300, 300, 'bonus')
-    x_offset = 0
+    running = True
     TIMER_EVENT_TYPE = USEREVENT + 1  
     time.set_timer(TIMER_EVENT_TYPE, 3000)
+    finish = False
+    lives = 3
+    bullets2 = pygame.sprite.Group()
     while running:
         
         for e in event.get():
@@ -146,14 +205,14 @@ def game_loop():
                 #движение спрайта
                 if e.key == K_UP or e.key == K_w:
                     if not player.is_jumping:
-                        player.y_speed = -10 
+                        player.y_speed = -9
                         player.is_jumping = True 
                 if e.key == K_DOWN or e.key == K_s:
-                    player.y_speed = 8
+                    player.y_speed = 9
                 if e.key == K_LEFT or e.key == K_a:
-                    player.x_speed = -15
+                    player.x_speed = -9
                 if e.key == K_RIGHT or e.key == K_d:
-                    player.x_speed = 15
+                    player.x_speed = 9
             
             elif e.type == KEYUP:
                 if e.key == K_LEFT or e.key == K_a:
@@ -165,66 +224,42 @@ def game_loop():
             elif e.type == TIMER_EVENT_TYPE:
                 for enemy in monsters:
                     enemy.update()  
-                    bullet = Bullet(enemy.rect.centerx + 30, enemy.rect.centery)
-                    bullets.add(bullet)
-                    bullets.update()
+                    bullet = Bullet(enemy.rect.centerx + 30, enemy.rect.centery, 'enemy_bullet')
+                    bullets2.add(bullet)
+                    bullets2.update()
             if lives == 0:
                 finish = True
 
             win = transform.smoothscale(image.load('thumb.jpg'), (1200, 1080))
 
         if not finish:
-            if player.rect.x > 400 and player.x_speed > 0:
-                x_offset += player.rect.x - 400
-                player.rect.x = 400
-                for obj in map_objects:
-                    obj['x'] -= 10
-                    obj['image'] = transform.scale(image.load(obj['image']), (75, 50))  
-                    obj['image_rect'] = obj['image'].get_rect()
-                    obj['image_rect'].x = obj['x']
-                    obj['image_rect'].y = obj['y']
-                for barrier in barriers:
-                    barrier.rect.x -= 10
-                for monster in monsters:
-                    monster.rect.x -= 10
-                
-            elif player.rect.x < 100 and player.x_speed < 0:
-                x_offset += player.rect.x - 100
-                player.rect.x = 100
-                for obj in map_objects:
-                    obj['x'] += 10
-                    obj['image'] = transform.scale(image.load(obj['image']), (75, 50)) 
-                    obj['image_rect'] = obj['image'].get_rect()
-                    obj['image_rect'].x = obj['x']
-                    obj['image_rect'].y = obj['y']
-                for barrier in barriers:
-                    barrier.rect.x += 10
-                for monster in monsters:
-                    monster.rect.x += 10
-                for obj in map_objects:
-                    window.blit(obj['image'], (obj['image_rect'].x, obj['image_rect'].y))
+            
             draw_lives(50, 80, lives)
             #орбработка урона
-            if sprite.spritecollide(player, monsters, True):
+            if pygame.sprite.spritecollide(player, monsters, True):
                 lives -= 1
                 draw_lives(50, 80, lives)
             for enemy in monsters:
-                if sprite.spritecollide(enemy, bullets, True):
-                    enemy.health -= 1
-                    if enemy.health <= 0:
-                        enemy.kill()
-            if sprite.spritecollide(player, bonus, True): 
+                for bullet in bullets:
+                    if bullet.type == 'player':
+                        if pygame.sprite.collide_rect(enemy, bullet):
+                            enemy.health -= 1
+                            if enemy.health <= 0:
+                                enemy.kill()
+                            bullet.kill()
+            if pygame.sprite.spritecollide(player, bonus, True): 
                 for b in bonus:  
                     b.apply(player)  
         
-            sprite.groupcollide(bullets, barriers, True, False)
-            sprite.groupcollide(bullets, monsters, True, True)
+           
 
-            
+            window.fill((0, 0, 0))
             background_image = transform.scale(image.load('level.png'), (WIDTH, HEIGHT))
             window.blit(background_image, (0, 0))
             bullets.update()
             bullets.draw(window)
+            bullets2.update()
+            bullets2.draw(window)
             bonus.update()
             monsters.update()
             monsters.draw(window)
@@ -234,12 +269,20 @@ def game_loop():
             b.update()
             draw_lives(10, 10,lives)
             barriers.draw(window)
+            camera.update(player)
+            for sprite in [player]  + list(barriers.sprites()) + list(bonus.sprites()) + list(monsters.sprites()):
+                
+                camera.apply(sprite)
+                # Проверяем столкновение с блоками после применения камеры
             
+                
         else:
             return 'exit'
-        time.delay(30)
+        
         display.update()
-        clock.tick(100)
+        clock.tick(1200)
+        
+        
 
 def open_editor(running):
     map_objects = []
