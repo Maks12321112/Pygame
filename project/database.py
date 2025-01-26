@@ -34,12 +34,11 @@ def load_database():
     return list(data)
 
 
+
 def load(data):
-    if data[1] in range(1,6) and data[2] in range(1,6) and data[4] in range(1, 6) and data[5] in range(1, 6):
-        player_dann = [data[0], round(5 * (1.2) ** data[1]), round(5 * (1.1) ** data[2]), data[3], round(100 * 1.9 ** data[4]), round(30 * 1.2 ** data[5]), data[6]]
-        return list(player_dann)
-    else: 
-        return False
+    
+    player_dann = [data[0], round(5 * (1.2) ** data[1]), round(5 * (1.1) ** data[2]), data[3], round(100 * 1.9 ** data[4]), round(30 * 1.2 ** data[5]), data[6]]
+    return list(player_dann)
 
 
 
@@ -53,4 +52,4 @@ def load(data):
 
 
 
- 
+

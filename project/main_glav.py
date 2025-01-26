@@ -3,7 +3,7 @@ import pygame
 import json
 import os
 import sys
-
+from load_map import load_map1
 from buttans import Button
 import pygame
 font = pygame.font
@@ -12,6 +12,8 @@ import sys
 from pygame.locals import *
 import os
 from labirint import *
+from test import *
+from game2 import *
 barriers = pygame.sprite.Group()
 
 
@@ -59,13 +61,13 @@ class Player(GameSprite):
         platforms_touched = pygame.sprite.spritecollide(self, barriers, False)
         if self.y_speed > 0:  
             for p in platforms_touched:
-                print(p.rect.x, p.rect.y)
+                
                 self.rect.bottom = min(self.rect.bottom, p.rect.top)
                 self.y_speed = 0  
                 self.is_jumping = False
         elif self.y_speed < 0: 
             for p in platforms_touched:
-                print(p.rect.x, p.rect.y)
+                
                 self.rect.top = max(self.rect.top, p.rect.bottom)
                 self.y_speed = 0  
 
@@ -141,11 +143,13 @@ offset_y = 0
 def main_menu():
     background_image = transform.scale(image.load('glav_menu.jpg'), (WIDTH, HEIGHT))
     window.blit(background_image, (0, 0))
-    font_instance = font.Font(None, 74)  
-    small_font = font.Font(None, 36)
+    font_instance = pygame.font.Font(None, 74)  
+    small_font = pygame.font.Font(None, 36)
     start_button = Button(WIDTH // 2 - 100, HEIGHT // 2 - 20, 200, 40, 'Начать', BLACK, GREEN, small_font)
     editor_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 30, 200, 40, 'Редактор', BLACK, GREEN, small_font)
-    exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 80, 200, 40, 'Выйти', BLACK, RED, small_font)
+    editor_button1 = Button(WIDTH // 2 - 100, HEIGHT // 2 + 80, 200, 40, 'Копатель', BLACK, GREEN, small_font)
+    editor_button2 = Button(WIDTH // 2 - 100, HEIGHT // 2 + 130, 200, 40, 'Магазин', BLACK, GREEN, small_font)
+    exit_button = Button(WIDTH // 2 - 100, HEIGHT // 2 + 180, 200, 40, 'Выйти', BLACK, RED, small_font)
 
     while True:
         draw_text('Главное меню', font_instance, BLACK, window, WIDTH // 2, HEIGHT // 4)
@@ -155,11 +159,15 @@ def main_menu():
         start_button.update((mouse_x, mouse_y))
         editor_button.update((mouse_x, mouse_y))
         exit_button.update((mouse_x, mouse_y))
+        editor_button1.update((mouse_x, mouse_y))
+        editor_button2.update((mouse_x, mouse_y))
+
 
         start_button.draw(window)
         editor_button.draw(window)
         exit_button.draw(window)
-
+        editor_button1.draw(window)
+        editor_button2.draw(window)
         for e in event.get():  
             if e.type == QUIT:
                 quit()
@@ -171,11 +179,20 @@ def main_menu():
                     return  'game'
                 elif editor_button.is_clicked((mouse_x, mouse_y)): 
                     running = True
-                    open_editor(True) 
+                    load_map1() 
+                    window.blit(background_image, (0, 0))
+                elif editor_button2.is_clicked((mouse_x , mouse_y)):
+                    game2() 
+                    window.blit(background_image, (0, 0))
+                elif editor_button1.is_clicked((mouse_x, mouse_y)):
+                    game3()
+                    print(1)
+                    window.blit(background_image, (0, 0))
                 elif exit_button.is_clicked((mouse_x , mouse_y)):
+                
                     quit()
                     sys.exit()
-
+                
         display.flip()
 
 
@@ -200,7 +217,7 @@ def game_loop():
                 return 'menu'
             elif e.type == KEYDOWN:
                 if e.key == K_SPACE:
-                    bullet = Bullet(player.rect.centerx, player.rect.centery)
+                    bullet = Bullet(player.rect.centerx, player.rect.centery, 'player')
                     bullets.add(bullet)
                 #движение спрайта
                 if e.key == K_UP or e.key == K_w:
@@ -243,7 +260,9 @@ def game_loop():
                 for bullet in bullets:
                     if bullet.type == 'player':
                         if pygame.sprite.collide_rect(enemy, bullet):
+                            bullet.kill
                             enemy.health -= 1
+                            
                             if enemy.health <= 0:
                                 enemy.kill()
                             bullet.kill()
@@ -273,7 +292,7 @@ def game_loop():
             for sprite in [player]  + list(barriers.sprites()) + list(bonus.sprites()) + list(monsters.sprites()):
                 
                 camera.apply(sprite)
-                # Проверяем столкновение с блоками после применения камеры
+                
             
                 
         else:
@@ -284,78 +303,7 @@ def game_loop():
         
         
 
-def open_editor(running):
-    map_objects = []
 
-
-    dragging = False  
-    dragged_object = None 
-    offset_x = 0 
-    offset_y = 0
-    while running:
-
-        window.blit(background_image, (0, 0))  
-
-        
-        window.blit(block_image, (10, 10)) 
-        window.blit(bonus_image, (80, 70))  
-        window.blit(enemy_image, (10, 70))  
-
-
-        print(map_objects)
-        for obj in map_objects:
-            image = images[obj['image']]  
-        
-            window.blit(image, (obj['x'], obj['y']))  
-
-        
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                window.fill((0, 0, 0))
-                running = False 
-
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = event.pos  
-                
-
-                if 10 <= mouse_x <= 60 and 10 <= mouse_y <= 60:
-                    dragged_object = {'image': 'block', 'x': mouse_x, 'y': mouse_y}  
-                    dragging = True 
-                elif 10 <= mouse_x <= 60 and 70 <= mouse_y <= 120:
-                    dragged_object = {'image': 'enemy', 'x': mouse_x, 'y': mouse_y} 
-                    dragging = True 
-                elif 80 <= mouse_x <= 120 and 70 <= mouse_y <= 120:
-                    dragged_object = {'image': 'bonus', 'x': mouse_x, 'y': mouse_y} 
-                    dragging = True 
-                else:
-                    
-                    for obj in map_objects:
-                        if obj['x'] <= mouse_x <= obj['x'] + 50 and obj['y'] <= mouse_y <= obj['y'] + 50:
-                            dragging = True  
-                            offset_x = obj['x'] - mouse_x 
-                            offset_y = obj['y'] - mouse_y 
-                            dragged_object = obj  
-                            break 
-
-            if event.type == pygame.MOUSEBUTTONUP:
-                if dragging:  
-                    dragging = False 
-                    if dragged_object not in map_objects:  
-                        map_objects.append(dragged_object)
-                    dragged_object = None  
-
-            if event.type == pygame.MOUSEMOTION:
-                if dragging and dragged_object:  
-                    mouse_x, mouse_y = event.pos  
-                    dragged_object['x'] = mouse_x + offset_x  
-                    dragged_object['y'] = mouse_y + offset_y  
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_s: 
-                    with open('map.json', 'w') as f:
-                        json.dump(map_objects, f)  
-
-        pygame.display.flip()  
 
 if __name__ == "__main__":
     

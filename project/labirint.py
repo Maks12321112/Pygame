@@ -8,7 +8,7 @@ finish = False
 run = True
 y_speed = 0
 win = transform.scale(image.load('thumb.jpg'), (700, 500))
-
+import os
 
 import json
 WIDTH, HEIGHT = 800, 600
@@ -86,13 +86,13 @@ class Player(GameSprite):
         platforms_touched = pygame.sprite.spritecollide(self, barriers, False)
         if self.y_speed > 0:  
             for p in platforms_touched:
-                print(p.rect.x, p.rect.y)
+                
                 self.rect.bottom = min(self.rect.bottom, p.rect.top)
                 self.y_speed = 0  
                 self.is_jumping = False
         elif self.y_speed < 0: 
             for p in platforms_touched:
-                print(p.rect.x, p.rect.y)
+                
                 self.rect.top = max(self.rect.top, p.rect.bottom)
                 self.y_speed = 0  
 
@@ -151,7 +151,7 @@ class Enemy(GameSprite):
 
 
 class Bullet(sprite.Sprite):
-    def __init__(self, x, y, type = 'enemy'):
+    def __init__(self, x, y, type = 'enemy_bullet'):
         super().__init__()
         self.type = type
         self.image = Surface((10, 5))  
@@ -174,7 +174,7 @@ def draw_lives(x, y, lives):
 
 
 
-import os
+
 
 
 class Bonus(GameSprite):

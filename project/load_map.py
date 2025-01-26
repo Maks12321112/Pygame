@@ -1,112 +1,122 @@
 import pygame
-import json
-import os
-
-# Инициализация Pygame
-pygame.init()
-
-# Установите размеры окна
-WIDTH, HEIGHT = 800, 600
-window = pygame.display.set_mode((WIDTH, HEIGHT))  # Создание окна с заданными размерами
-pygame.display.set_caption("Конструктор карты")  # Установка заголовка окна
-
-# Загрузка изображения фона
-try:
-    background_image = pygame.transform.scale(pygame.image.load('level.png'), (WIDTH, HEIGHT))  # Загрузка и масштабирование фона
-    block_image = pygame.transform.scale(pygame.image.load('platform_h.png'), (150, 30))  # Загрузка и масштабирование изображения блока
-    enemy_image = pygame.transform.scale(pygame.image.load('enemy.png'), (50, 50))  # Загрузка и масштабирование изображения врага
-except pygame.error as e:
-    print(f"Ошибка загрузки изображения: {e}")  # Вывод ошибки, если изображения не удалось загрузить
-    pygame.quit()  # Завершение Pygame
-    exit()  # Выход из программы
-
-# Словарь для хранения изображений объектов
-images = {
-    'block': block_image,
-    'enemy': enemy_image
-}
-
-# Список для хранения объектов карты
+from pygame import *
 map_objects = []
 
-# Переменные для перетаскивания объектов
-dragging = False  # Флаг, указывающий, перетаскивается ли объект
-dragged_object = None  # Текущий перетаскиваемый объект
-offset_x = 0  # Смещение по оси X
-offset_y = 0  # Смещение по оси Y
 
-# Функция для загрузки карты из файла
-def load_map(filename):
-    global map_objects  # Используем глобальную переменную map_objects
-    try:
-        with open(filename, 'r') as f:
-            map_objects = json.load(f)  # Загрузка объектов карты из JSON-файла
-    except FileNotFoundError:
-        print(f"Файл {filename} не найден. Пожалуйста, сохраните карту перед загрузкой.")  # Сообщение об ошибке, если файл не найден
-    except json.JSONDecodeError:
-        print(f"Ошибка при загрузке файла {filename}. Возможно, файл поврежден.")  # Сообщение об ошибке, если файл поврежден
+dragging = False  
+dragged_object = None 
+offset_x = 0 
+offset_y = 0
+block_image = transform.scale(image.load('platform_h.png'), (150, 50))
+enemy_image = transform.scale(image.load('enemy.png'), (50, 50))
+bonus_image = transform.scale(image.load('Gold_21.png'), (50, 50))
+window = display.set_mode((800, 800))
+WIDTH, HEIGHT = 800, 600
+background_image = transform.scale(image.load('glav_menu.jpg'), (WIDTH, HEIGHT))
 
-# Основной игровой цикл
-running = True
-while running:
-    # Отображение фона
-    window.blit(background_image, (0, 0))  # Отрисовка фона на экране
+window.blit(background_image, (0, 0))
+images = {
+    'block': block_image,
+    'enemy': enemy_image,
+    'bonus': bonus_image
+}
 
-    # Отображение объектов (блоков и врагов)
-    window.blit(block_image, (10, 10))  # Отрисовка блока в фиксированной позиции
-    window.blit(enemy_image, (10, 70))  # Отрисовка врага в фиксированной позиции
+import json
 
-    # Отрисовка объектов карты
+def draw_objects(camera_x, camera_y):
+    window.blit(background_image, (0, 0))
+
+    window.blit(block_image, (10, 10))
+    window.blit(bonus_image, (80 , 70))
+    window.blit(enemy_image, (10, 70))
+
     for obj in map_objects:
-        image = images[obj['image']]  # Получение изображения объекта по его типу
-       
-        window.blit(image, (obj['x'], obj['y']))  # Отрисовка объекта на экране
+        image = images[obj['image']]
+        window.blit(image, (obj['x'] - camera_x, obj['y'] - camera_y))
 
-    # Обработка событий
+def handle_events(camera_x, camera_y):
+    global dragging, dragged_object, offset_x, offset_y
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            running = False  # Выход из цикла, если окно закрыто
+            window.fill((0, 0, 0))
+            return False
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-            mouse_x, mouse_y = event.pos  # Получение позиции мыши
-            
-            # Проверка, нажата ли мышь на блоке или враге для начала перетаскивания
-            if 10 <= mouse_x <= 60 and 10 <= mouse_y <= 60:
-                dragged_object = {'image': 'block', 'x': mouse_x, 'y': mouse_y}  # Создание нового блока
-                dragging = True  # Установка флага перетаскивания
-            elif 10 <= mouse_x <= 60 and 70 <= mouse_y <= 120:
-                dragged_object = {'image': 'enemy', 'x': mouse_x, 'y': mouse_y}  # Создание нового врага
-                dragging = True  # Установка флага перетаскивания
+            mouse_x, mouse_y = event.pos
+            mouse_x += camera_x
+            mouse_y += camera_y
+
+            if 10 + camera_x <= mouse_x <= 60 + camera_x and 10 + camera_y <= mouse_y <= 60 + camera_y:
+                dragged_object = {'image': 'block', 'x': mouse_x, 'y': mouse_y}
+                dragging = True
+            elif 10 + camera_x <= mouse_x <= 60 + camera_x and 70 + camera_y <= mouse_y <= 120 + camera_y:
+                dragged_object = {'image': 'enemy', 'x': mouse_x, 'y': mouse_y}
+                dragging = True
+            elif 80 + camera_x <= mouse_x <= 120 + camera_x and 70 + camera_y <= mouse_y <= 120 + camera_y:
+                dragged_object = {'image': 'bonus', 'x': mouse_x, 'y': mouse_y}
+                dragging = True
             else:
-                # Проверка, нажата ли мышь на существующем объекте карты
                 for obj in map_objects:
                     if obj['x'] <= mouse_x <= obj['x'] + 50 and obj['y'] <= mouse_y <= obj['y'] + 50:
-                        dragging = True  # Установка флага перетаскивания
-                        offset_x = obj['x'] - mouse_x  # Вычисление смещения по оси X
-                        offset_y = obj['y'] - mouse_y  # Вычисление смещения по оси Y
-                        dragged_object = obj  # Установка текущего перетаскиваемого объекта
-                        break  # Выход из цикла, если объект найден
+                        dragging = True
+                        offset_x = obj['x'] - mouse_x
+                        offset_y = obj['y'] - mouse_y
+                        dragged_object = obj
+                        break
 
         if event.type == pygame.MOUSEBUTTONUP:
-            if dragging:  # Если объект перетаскивается
-                dragging = False  # Сброс флага перетаскивания
-                if dragged_object not in map_objects:  # Если объект новый, добавляем его в список
+            if dragging:
+                dragging = False
+                if dragged_object not in map_objects:
                     map_objects.append(dragged_object)
-                dragged_object = None  # Сброс текущего перетаскиваемого объекта
+                dragged_object = None
 
         if event.type == pygame.MOUSEMOTION:
-            if dragging and dragged_object:  # Если объект перетаскивается
-                mouse_x, mouse_y = event.pos  # Получение текущей позиции мыши
-                dragged_object['x'] = mouse_x + offset_x  # Обновление позиции объекта по оси X
-                dragged_object['y'] = mouse_y + offset_y  # Обновление позиции объекта по оси Y
+            if dragging and dragged_object:
+                mouse_x, mouse_y = event.pos
+                mouse_x += camera_x
+                mouse_y += camera_y
+                dragged_object['x'] = mouse_x + offset_x
+                dragged_object['y'] = mouse_y + offset_y
 
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_s:  # Если нажата клавиша S
+            if event.key == pygame.K_s:
                 with open('map.json', 'w') as f:
-                    json.dump(map_objects, f)  # Сохранение объектов карты в JSON-файл
-            if event.key == pygame.K_l:  # Если нажата клавиша L
-                load_map('map.json')  # Загрузка объектов карты из JSON-файла
+                    json.dump(map_objects, f)
 
-    pygame.display.flip()  # Обновление экрана
+            if event.key == pygame.K_LEFT:
+                camera_x += 10
 
-pygame.quit()  # Завершение Pygame
+            if event.key == pygame.K_RIGHT:
+                camera_x -= 10
+            if event.key == pygame.K_UP:
+                camera_y += 10
+            if event.key == pygame.K_DOWN:
+                camera_y -= 10
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            camera_x += 10
+        if keys[pygame.K_RIGHT]:
+            camera_x -= 10
+        if keys[pygame.K_UP]:
+            camera_y += 10
+        if keys[pygame.K_DOWN]:
+            camera_y -= 10
+
+    return camera_x, camera_y
+
+def load_map1():
+    global camera_x, camera_y
+    camera_x = 0
+    camera_y = 0
+
+    running = True
+    while running:
+        result = handle_events(camera_x, camera_y)
+        if result is False:
+            running = False
+        else:
+            camera_x, camera_y = result
+        draw_objects(camera_x, camera_y)
+        pygame.display.flip()
